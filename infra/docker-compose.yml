@@ -1,0 +1,33 @@
+services:
+  pml-backend:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    container_name: pml-backend
+    ports:
+      - "8000:80"
+    env_file:
+      - .env
+    volumes:
+      - ../backend:/app
+      - ../mcp-tools:/app/mcp-tools
+      - ../ops-logs:/app/ops-logs
+    environment:
+      - DEBUG=True
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: pml-tunnel
+    command: tunnel run
+    env_file:
+      - .env
+    volumes:
+      - ./cloudflared:/etc/cloudflared
+    depends_on:
+      pml-backend:
+        condition: service_healthy
